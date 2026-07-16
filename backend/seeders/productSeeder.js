@@ -376,7 +376,52 @@ const seedDatabase = async () => {
         const createdCategories = await Category.insertMany(categories);
         console.log(`✅ Created ${createdCategories.length} categories`);
 
-        console.log('🎉 Database seeded successfully with categories (0 products)!');
+        // Map categories to a helper map by slug
+        const categoryMap = {};
+        createdCategories.forEach(cat => {
+            categoryMap[cat.slug] = cat._id;
+        });
+
+        // Prefix map for itemCode generation
+        const slugToPrefix = {
+            'chandeliers': 'CH',
+            'wall-lights': 'WL',
+            'pendant-lights': 'PL',
+            'bulbs': 'BL',
+            'commercial-lights': 'CL',
+            'outdoor-lights': 'OL'
+        };
+
+        const prefixCounters = {};
+
+        // Prepare products with required category ObjectId and itemCode
+        const productsToInsert = sampleProducts.map(p => {
+            const categoryId = categoryMap[p.categorySlug];
+            if (!categoryId) {
+                throw new Error(`Category not found for slug: ${p.categorySlug}`);
+            }
+
+            const prefix = slugToPrefix[p.categorySlug] || 'PR';
+            if (!prefixCounters[prefix]) {
+                prefixCounters[prefix] = 1;
+            }
+            const sequenceNum = String(prefixCounters[prefix]++).padStart(3, '0');
+            const itemCode = `${prefix}-${sequenceNum}`;
+
+            // Create new object without categorySlug and with category/itemCode
+            const { categorySlug, ...productData } = p;
+            return {
+                ...productData,
+                itemCode,
+                category: categoryId
+            };
+        });
+
+        console.log('📦 Creating products...');
+        const createdProducts = await Product.insertMany(productsToInsert);
+        console.log(`✅ Created ${createdProducts.length} products`);
+
+        console.log('🎉 Database seeded successfully with categories and products!');
         process.exit(0);
     } catch (error) {
         console.error('❌ Error seeding database:', error);
@@ -385,3 +430,4 @@ const seedDatabase = async () => {
 };
 
 seedDatabase();
+
