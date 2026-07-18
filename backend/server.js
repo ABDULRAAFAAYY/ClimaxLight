@@ -61,9 +61,17 @@ app.use((req, res) => {
     res.status(404).json({ message: 'Route not found' });
 });
 
-// Start server
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-    console.log(`🚀 Server running on port ${PORT}`);
-    console.log(`📍 Environment: ${process.env.NODE_ENV}`);
-});
+// Export app for Vercel serverless
+export default app;
+
+// Start server only when running directly (not imported by Vercel)
+const __currentFile = fileURLToPath(import.meta.url);
+const isMain = process.argv[1] && path.resolve(process.argv[1]) === path.resolve(__currentFile);
+
+if (isMain) {
+    const PORT = process.env.PORT || 5000;
+    app.listen(PORT, () => {
+        console.log(`🚀 Server running on port ${PORT}`);
+        console.log(`📍 Environment: ${process.env.NODE_ENV}`);
+    });
+}
