@@ -18,13 +18,23 @@ dotenv.config();
 // Initialize Express app
 const app = express();
 
-// Connect to MongoDB
-connectDB();
+// Connect to MongoDB (fire-and-forget on startup, actual requests will await it)
+connectDB().catch(err => console.error('Database connection failed on startup:', err.message));
 
 // Middleware
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Database connection middleware (ensures DB is connected before handling requests)
+app.use(async (req, res, next) => {
+    try {
+        await connectDB();
+        next();
+    } catch (error) {
+        next(error);
+    }
+});
 
 // Serve uploaded files
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
@@ -50,9 +60,17 @@ app.use('/api/orders', orderRoutes);
 // Error handling middleware
 app.use((err, req, res, next) => {
     console.error(err.stack);
+    
+    // Check if error is database related
+    const isDbError = err.message && (
+        err.message.includes('Database connection') ||
+        err.message.includes('MONGODB_URI') ||
+        err.message.includes('connection')
+    );
+    
     res.status(500).json({
-        message: 'Something went wrong!',
-        error: process.env.NODE_ENV === 'development' ? err.message : {}
+        message: isDbError ? err.message : 'Something went wrong!',
+        error: process.env.NODE_ENV === 'development' || isDbError ? err.message : {}
     });
 });
 
