@@ -32,7 +32,10 @@ const Cart = () => {
         if (img.startsWith('http') || img.startsWith('data:')) {
             return img;
         }
-        return `${API_URL}${img}`;
+        const path = img.startsWith('/uploads/') || img.startsWith('uploads/')
+            ? (img.startsWith('/') ? img : `/${img}`)
+            : `/uploads/${img}`;
+        return `${API_URL}${path}`;
     };
 
     const handleReceiptChange = (e) => {

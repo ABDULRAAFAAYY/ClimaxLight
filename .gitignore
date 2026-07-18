@@ -15,8 +15,8 @@ frontend/.env.production.local
 frontend/dist/
 
 # Uploads and files
-backend/uploads/*
-!backend/uploads/.gitkeep
+# backend/uploads are committed so Vercel can serve seeded/imported product images
+
 
 # IDE files and OS files
 .idea/
