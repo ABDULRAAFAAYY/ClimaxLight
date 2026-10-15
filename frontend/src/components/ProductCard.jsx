@@ -7,9 +7,6 @@ const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'ht
 
 const ProductCard = ({ product }) => {
     const { addToCart } = useCart();
-    const discount = product.compareAtPrice > 0
-        ? Math.round(((product.compareAtPrice - product.price) / product.compareAtPrice) * 100)
-        : 0;
 
     const getPlaceholder = (name) => {
         const text = name || 'Product';
@@ -50,9 +47,6 @@ const ProductCard = ({ product }) => {
                             e.target.src = getPlaceholder(product.itemCode);
                         }}
                     />
-                    {discount > 0 && (
-                        <span className="product-badge">-{discount}%</span>
-                    )}
                     {product.isFeatured && (
                         <span className="product-badge featured">Featured</span>
                     )}
@@ -68,11 +62,6 @@ const ProductCard = ({ product }) => {
 
                     <div className="product-pricing">
                         <span className="product-price">Rs. {product.price.toLocaleString()}</span>
-                        {product.compareAtPrice > 0 && (
-                            <span className="product-compare-price">
-                                Rs. {product.compareAtPrice.toLocaleString()}
-                            </span>
-                        )}
                     </div>
 
                     {product.stock > 0 ? (

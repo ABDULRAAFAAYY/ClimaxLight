@@ -129,8 +129,10 @@ router.post('/products', async (req, res) => {
         }
 
         // Validate price only if it doesn't have variants
-        if (!hasVariants && (price === undefined || price === null || price === '')) {
-            return res.status(400).json({ message: 'Price is required when variants are disabled.' });
+        const hasValidPrice = (compareAtPrice !== undefined && compareAtPrice !== null && compareAtPrice !== '') ||
+                              (price !== undefined && price !== null && price !== '');
+        if (!hasVariants && !hasValidPrice) {
+            return res.status(400).json({ message: 'Comparable Price is required when variants are disabled.' });
         }
 
         // Check if itemCode already exists
@@ -150,8 +152,10 @@ router.post('/products', async (req, res) => {
             }
         }
 
-        let finalPrice = parseFloat(price);
-        let finalCompareAtPrice = compareAtPrice ? parseFloat(compareAtPrice) : 0;
+        let finalCompareAtPrice = (compareAtPrice !== undefined && compareAtPrice !== null && compareAtPrice !== '')
+            ? parseFloat(compareAtPrice)
+            : (price ? parseFloat(price) : 0);
+        let finalPrice = Math.round(finalCompareAtPrice * 0.75);
         let finalStock = stock ? parseInt(stock) : 0;
         let finalVariants = [];
 
@@ -162,17 +166,24 @@ router.post('/products', async (req, res) => {
             
             for (let i = 0; i < variants.length; i++) {
                 const v = variants[i];
-                if (!v.size || !v.size.trim() || v.price === undefined || v.price === null || v.price === '') {
-                    return res.status(400).json({ message: `Variant at index ${i} is missing size or price.` });
+                const hasVPrice = (v.compareAtPrice !== undefined && v.compareAtPrice !== null && v.compareAtPrice !== '') ||
+                                  (v.price !== undefined && v.price !== null && v.price !== '');
+                if (!v.size || !v.size.trim() || !hasVPrice) {
+                    return res.status(400).json({ message: `Variant at index ${i} is missing size or comparable price.` });
                 }
             }
 
-            finalVariants = variants.map(v => ({
-                size: v.size.trim(),
-                price: parseFloat(v.price) || 0,
-                compareAtPrice: v.compareAtPrice ? parseFloat(v.compareAtPrice) : 0,
-                stock: v.stock ? parseInt(v.stock) : 0
-            }));
+            finalVariants = variants.map(v => {
+                const vComp = (v.compareAtPrice !== undefined && v.compareAtPrice !== null && v.compareAtPrice !== '')
+                    ? parseFloat(v.compareAtPrice)
+                    : (v.price ? parseFloat(v.price) : 0);
+                return {
+                    size: v.size.trim(),
+                    compareAtPrice: vComp,
+                    price: Math.round(vComp * 0.75),
+                    stock: v.stock ? parseInt(v.stock) : 0
+                };
+            });
 
             // Auto-fill base price and stock
             finalPrice = finalVariants[0].price;
@@ -237,8 +248,10 @@ router.put('/products/:id', async (req, res) => {
         }
 
         // Validate price only if it doesn't have variants
-        if (!hasVariants && (price === undefined || price === null || price === '')) {
-            return res.status(400).json({ message: 'Price is required when variants are disabled.' });
+        const hasValidPrice = (compareAtPrice !== undefined && compareAtPrice !== null && compareAtPrice !== '') ||
+                              (price !== undefined && price !== null && price !== '');
+        if (!hasVariants && !hasValidPrice) {
+            return res.status(400).json({ message: 'Comparable Price is required when variants are disabled.' });
         }
 
         // Check if itemCode already exists on a different product
@@ -261,8 +274,10 @@ router.put('/products/:id', async (req, res) => {
             }
         }
 
-        let finalPrice = parseFloat(price);
-        let finalCompareAtPrice = compareAtPrice ? parseFloat(compareAtPrice) : 0;
+        let finalCompareAtPrice = (compareAtPrice !== undefined && compareAtPrice !== null && compareAtPrice !== '')
+            ? parseFloat(compareAtPrice)
+            : (price ? parseFloat(price) : 0);
+        let finalPrice = Math.round(finalCompareAtPrice * 0.75);
         let finalStock = stock ? parseInt(stock) : 0;
         let finalVariants = [];
 
@@ -273,17 +288,24 @@ router.put('/products/:id', async (req, res) => {
             
             for (let i = 0; i < variants.length; i++) {
                 const v = variants[i];
-                if (!v.size || !v.size.trim() || v.price === undefined || v.price === null || v.price === '') {
-                    return res.status(400).json({ message: `Variant at index ${i} is missing size or price.` });
+                const hasVPrice = (v.compareAtPrice !== undefined && v.compareAtPrice !== null && v.compareAtPrice !== '') ||
+                                  (v.price !== undefined && v.price !== null && v.price !== '');
+                if (!v.size || !v.size.trim() || !hasVPrice) {
+                    return res.status(400).json({ message: `Variant at index ${i} is missing size or comparable price.` });
                 }
             }
 
-            finalVariants = variants.map(v => ({
-                size: v.size.trim(),
-                price: parseFloat(v.price) || 0,
-                compareAtPrice: v.compareAtPrice ? parseFloat(v.compareAtPrice) : 0,
-                stock: v.stock ? parseInt(v.stock) : 0
-            }));
+            finalVariants = variants.map(v => {
+                const vComp = (v.compareAtPrice !== undefined && v.compareAtPrice !== null && v.compareAtPrice !== '')
+                    ? parseFloat(v.compareAtPrice)
+                    : (v.price ? parseFloat(v.price) : 0);
+                return {
+                    size: v.size.trim(),
+                    compareAtPrice: vComp,
+                    price: Math.round(vComp * 0.75),
+                    stock: v.stock ? parseInt(v.stock) : 0
+                };
+            });
 
             // Auto-fill base price and stock
             finalPrice = finalVariants[0].price;

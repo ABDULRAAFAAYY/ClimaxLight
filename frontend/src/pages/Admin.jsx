@@ -348,8 +348,8 @@ const Admin = () => {
         setProductForm({
             itemCode: product.itemCode || '',
             name: product.name || '',
-            price: product.price || '',
-            compareAtPrice: product.compareAtPrice || '',
+            price: product.price ? String(product.price) : '',
+            compareAtPrice: product.compareAtPrice ? String(product.compareAtPrice) : (product.price ? String(Math.round(product.price / 0.75)) : ''),
             category: product.category?._id || product.category || '',
             stock: String(product.stock || 0),
             description: product.description || '',
@@ -371,8 +371,8 @@ const Admin = () => {
             hasVariants: !!product.hasVariants,
             variants: product.variants ? product.variants.map(v => ({
                 size: v.size || '',
-                price: String(v.price || ''),
-                compareAtPrice: String(v.compareAtPrice || ''),
+                compareAtPrice: v.compareAtPrice ? String(v.compareAtPrice) : (v.price ? String(Math.round(v.price / 0.75)) : ''),
+                price: v.price ? String(v.price) : '',
                 stock: String(v.stock || '0'),
                 _id: v._id
             })) : []
@@ -418,21 +418,41 @@ const Admin = () => {
             }
             for (let i = 0; i < productForm.variants.length; i++) {
                 const v = productForm.variants[i];
-                if (!v.size || !String(v.size).trim() || !v.price || String(v.price).trim() === '') {
-                    setFormError(`Variant at index ${i + 1} is missing size or price.`);
+                if (!v.size || !String(v.size).trim() || !v.compareAtPrice || String(v.compareAtPrice).trim() === '') {
+                    setFormError(`Variant at index ${i + 1} is missing size or comparable price.`);
                     setFormLoading(false);
                     return;
                 }
             }
+        } else {
+            if (!productForm.compareAtPrice || String(productForm.compareAtPrice).trim() === '') {
+                setFormError('Comparable Price is required.');
+                setFormLoading(false);
+                return;
+            }
         }
+
+        const baseComparePrice = parseFloat(productForm.compareAtPrice) || 0;
+        const baseCalculatedPrice = Math.round(baseComparePrice * 0.75);
+
+        const mappedVariants = productForm.hasVariants ? productForm.variants.map(v => {
+            const vComp = parseFloat(v.compareAtPrice) || 0;
+            return {
+                size: v.size.trim(),
+                compareAtPrice: vComp,
+                price: Math.round(vComp * 0.75),
+                stock: parseInt(v.stock) || 0,
+                _id: v._id
+            };
+        }) : [];
 
         const payload = {
             itemCode: productForm.itemCode,
             name: productForm.name,
-            price: productForm.hasVariants ? parseFloat(productForm.variants[0].price) : productForm.price,
-            compareAtPrice: productForm.hasVariants ? (parseFloat(productForm.variants[0].compareAtPrice) || 0) : (parseFloat(productForm.compareAtPrice) || 0),
+            price: productForm.hasVariants && mappedVariants.length > 0 ? mappedVariants[0].price : baseCalculatedPrice,
+            compareAtPrice: productForm.hasVariants && mappedVariants.length > 0 ? mappedVariants[0].compareAtPrice : baseComparePrice,
             category: productForm.category,
-            stock: productForm.hasVariants ? productForm.variants.reduce((sum, v) => sum + (parseInt(v.stock) || 0), 0) : parseInt(productForm.stock) || 0,
+            stock: productForm.hasVariants ? mappedVariants.reduce((sum, v) => sum + (parseInt(v.stock) || 0), 0) : parseInt(productForm.stock) || 0,
             description: productForm.description,
             colorOption: productForm.colorOption,
             images: cleanImages,
@@ -441,13 +461,7 @@ const Admin = () => {
             specifications: productForm.specifications,
             features,
             hasVariants: productForm.hasVariants,
-            variants: productForm.hasVariants ? productForm.variants.map(v => ({
-                size: v.size.trim(),
-                price: parseFloat(v.price) || 0,
-                compareAtPrice: v.compareAtPrice ? parseFloat(v.compareAtPrice) : 0,
-                stock: parseInt(v.stock) || 0,
-                _id: v._id
-            })) : []
+            variants: mappedVariants
         };
 
         try {
@@ -841,7 +855,7 @@ const Admin = () => {
                                             <th>Image</th>
                                             <th>Item Code</th>
                                             <th>Category</th>
-                                            <th>Price (Rs.)</th>
+                                            <th>Pricing (Rs.)</th>
                                             <th>Color Option</th>
                                             <th>Stock</th>
                                             <th>Status</th>
@@ -861,12 +875,11 @@ const Admin = () => {
                                                 <td className="item-code-cell">{product.itemCode}</td>
                                                 <td>{product.category?.name || 'Uncategorized'}</td>
                                                 <td>
-                                                    <strong>{product.price.toLocaleString()}</strong>
-                                                    {product.compareAtPrice > 0 && (
-                                                        <span className="compare-price-small">
-                                                            <br />Rs. {product.compareAtPrice.toLocaleString()}
-                                                        </span>
-                                                    )}
+                                                    <span style={{ fontSize: '0.85rem', color: '#555' }}>Comp: </span>
+                                                    <strong>Rs. {(product.compareAtPrice || product.price).toLocaleString()}</strong>
+                                                    <span style={{ fontSize: '0.8rem', color: '#2e7d32', display: 'block', fontWeight: '600', marginTop: '2px' }}>
+                                                        Selling (-25%): Rs. {product.price.toLocaleString()}
+                                                    </span>
                                                     {product.hasVariants && (
                                                         <span style={{ fontSize: '0.75rem', color: '#ff5722', display: 'block', fontWeight: '600', marginTop: '2px' }}>
                                                             ({product.variants?.length || 0} sizes)
@@ -972,29 +985,26 @@ const Admin = () => {
                                 {/* Condition: Show standard price inputs if no variants */}
                                 {!productForm.hasVariants && (
                                     <>
-                                        {/* Price */}
+                                        {/* Comparable Price */}
                                         <div className="form-group">
-                                            <label>Price (Rs.) *</label>
-                                            <input
-                                                type="number"
-                                                min="0"
-                                                value={productForm.price}
-                                                onChange={(e) => setProductForm(prev => ({ ...prev, price: e.target.value }))}
-                                                placeholder="e.g. 45000"
-                                                required
-                                            />
-                                        </div>
-
-                                        {/* Compare Price */}
-                                        <div className="form-group">
-                                            <label>Compare at Price / Original Price (Rs.)</label>
+                                            <label>Comparable Price (Rs.) *</label>
                                             <input
                                                 type="number"
                                                 min="0"
                                                 value={productForm.compareAtPrice}
-                                                onChange={(e) => setProductForm(prev => ({ ...prev, compareAtPrice: e.target.value }))}
-                                                placeholder="e.g. 55000"
+                                                onChange={(e) => setProductForm(prev => ({ 
+                                                    ...prev, 
+                                                    compareAtPrice: e.target.value,
+                                                    price: e.target.value ? String(Math.round(parseFloat(e.target.value) * 0.75)) : ''
+                                                }))}
+                                                placeholder="e.g. 10000"
+                                                required
                                             />
+                                            {productForm.compareAtPrice && !isNaN(productForm.compareAtPrice) && (
+                                                <small style={{ display: 'block', marginTop: '0.4rem', color: '#2e7d32', fontWeight: '600' }}>
+                                                    💡 Selling Price (25% off): Rs. {Math.round(parseFloat(productForm.compareAtPrice) * 0.75).toLocaleString()} (Auto-calculated)
+                                                </small>
+                                            )}
                                         </div>
 
                                         {/* Stock */}
@@ -1030,31 +1040,27 @@ const Admin = () => {
                                                         style={{ flex: 2, padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px', height: '40px' }}
                                                         required
                                                     />
-                                                    <input 
-                                                        type="number"
-                                                        min="0"
-                                                        placeholder="Price (Rs.) *"
-                                                        value={variant.price}
-                                                        onChange={(e) => {
-                                                            const updated = [...productForm.variants];
-                                                            updated[index].price = e.target.value;
-                                                            setProductForm(prev => ({ ...prev, variants: updated }));
-                                                        }}
-                                                        style={{ flex: 1.5, padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px', height: '40px' }}
-                                                        required
-                                                    />
-                                                    <input 
-                                                        type="number"
-                                                        min="0"
-                                                        placeholder="Compare Price"
-                                                        value={variant.compareAtPrice}
-                                                        onChange={(e) => {
-                                                            const updated = [...productForm.variants];
-                                                            updated[index].compareAtPrice = e.target.value;
-                                                            setProductForm(prev => ({ ...prev, variants: updated }));
-                                                        }}
-                                                        style={{ flex: 1.5, padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px', height: '40px' }}
-                                                    />
+                                                    <div style={{ flex: 2, display: 'flex', flexDirection: 'column' }}>
+                                                        <input 
+                                                            type="number"
+                                                            min="0"
+                                                            placeholder="Comparable Price (Rs.) *"
+                                                            value={variant.compareAtPrice}
+                                                            onChange={(e) => {
+                                                                const updated = [...productForm.variants];
+                                                                updated[index].compareAtPrice = e.target.value;
+                                                                updated[index].price = e.target.value ? String(Math.round(parseFloat(e.target.value) * 0.75)) : '';
+                                                                setProductForm(prev => ({ ...prev, variants: updated }));
+                                                            }}
+                                                            style={{ padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px', height: '40px' }}
+                                                            required
+                                                        />
+                                                        {variant.compareAtPrice && !isNaN(variant.compareAtPrice) && (
+                                                            <span style={{ fontSize: '0.75rem', color: '#2e7d32', fontWeight: '600', marginTop: '2px' }}>
+                                                                Selling (-25%): Rs. {Math.round(parseFloat(variant.compareAtPrice) * 0.75).toLocaleString()}
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                     <input 
                                                         type="number"
                                                         min="0"
@@ -1088,7 +1094,7 @@ const Admin = () => {
                                             onClick={() => {
                                                 setProductForm(prev => ({ 
                                                     ...prev, 
-                                                    variants: [...prev.variants, { size: '', price: '', compareAtPrice: '', stock: '0' }] 
+                                                    variants: [...prev.variants, { size: '', compareAtPrice: '', price: '', stock: '0' }] 
                                                 }));
                                             }}
                                             style={{ marginTop: '0.5rem', display: 'inline-flex', padding: '0.5rem 1rem' }}

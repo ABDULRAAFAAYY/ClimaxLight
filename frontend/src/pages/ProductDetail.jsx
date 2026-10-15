@@ -64,10 +64,6 @@ const ProductDetail = () => {
         );
     }
 
-    const discount = product.compareAtPrice > 0
-        ? Math.round(((product.compareAtPrice - product.price) / product.compareAtPrice) * 100)
-        : 0;
-
     const getPlaceholder = (name) => {
         const text = name || 'Product';
         const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600"><rect width="600" height="600" fill="%23667eea"/><text x="300" y="300" font-family="Arial,sans-serif" font-size="32" fill="white" text-anchor="middle" dominant-baseline="middle">${text.length > 25 ? text.substring(0, 25) + '...' : text}</text></svg>`;
@@ -115,9 +111,6 @@ const ProductDetail = () => {
                                     e.target.src = getPlaceholder(product.itemCode);
                                 }}
                             />
-                            {discount > 0 && (
-                                <span className="discount-badge">-{discount}%</span>
-                            )}
                         </div>
                         {product.images && product.images.length > 1 && (
                             <div className="thumbnail-list">
@@ -153,11 +146,6 @@ const ProductDetail = () => {
 
                         <div className="product-pricing">
                             <span className="current-price">Rs. {displayPrice.toLocaleString()}</span>
-                            {displayCompareAtPrice > 0 && (
-                                <span className="original-price">
-                                    Rs. {displayCompareAtPrice.toLocaleString()}
-                                </span>
-                            )}
                         </div>
 
                         <p className="product-description">{product.description}</p>
@@ -230,11 +218,6 @@ const ProductDetail = () => {
                                                 </td>
                                                 <td style={{ padding: '0.75rem 0.5rem' }}>
                                                     <strong style={{ color: 'var(--primary)' }}>Rs. {v.price.toLocaleString()}</strong>
-                                                    {v.compareAtPrice > 0 && (
-                                                        <span style={{ textDecoration: 'line-through', color: '#999', fontSize: '0.8rem', marginLeft: '0.5rem' }}>
-                                                            Rs. {v.compareAtPrice.toLocaleString()}
-                                                        </span>
-                                                    )}
                                                 </td>
                                                 <td style={{ padding: '0.75rem 0.5rem' }}>
                                                     {v.stock > 0 ? (
