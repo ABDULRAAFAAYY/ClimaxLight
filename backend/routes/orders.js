@@ -4,6 +4,7 @@ import Order from '../models/Order.js';
 import Product from '../models/Product.js';
 import { requireAdmin } from '../middleware/auth.js';
 import imageUpload from '../middleware/imageUpload.js';
+import { sendOrderSlipEmail } from '../utils/emailService.js';
 
 const router = express.Router();
 
@@ -107,6 +108,11 @@ router.post('/', imageUpload.single('receiptImage'), async (req, res) => {
             paymentStatus: paymentStatus || 'Pending',
             transactionId: transactionId || null,
             receiptImage: req.file ? `/uploads/${req.file.filename}` : null
+        });
+
+        // Send order slip email notification to store owner (async)
+        sendOrderSlipEmail(newOrder).catch(err => {
+            console.error('Order email sending error:', err.message);
         });
 
         res.status(201).json(newOrder);
