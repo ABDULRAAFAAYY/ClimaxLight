@@ -110,10 +110,12 @@ router.post('/', imageUpload.single('receiptImage'), async (req, res) => {
             receiptImage: req.file ? `/uploads/${req.file.filename}` : null
         });
 
-        // Send order slip email notification to store owner (async)
-        sendOrderSlipEmail(newOrder).catch(err => {
-            console.error('Order email sending error:', err.message);
-        });
+        // Send order slip email notification to store owner
+        try {
+            await sendOrderSlipEmail(newOrder);
+        } catch (emailErr) {
+            console.error('Order email sending error:', emailErr.message);
+        }
 
         res.status(201).json(newOrder);
     } catch (error) {

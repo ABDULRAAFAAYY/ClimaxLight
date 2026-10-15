@@ -1,10 +1,14 @@
 import nodemailer from 'nodemailer';
 import path from 'path';
 import fs from 'fs';
+import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+dotenv.config({ path: path.join(__dirname, '../.env') });
+dotenv.config();
 
 /**
  * Send an Order Slip email to the store owner

@@ -12,7 +12,8 @@ import orderRoutes from './routes/orders.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Load environment variables
+// Load environment variables (from backend folder or process cwd)
+dotenv.config({ path: path.join(__dirname, '.env') });
 dotenv.config();
 
 // Initialize Express app
